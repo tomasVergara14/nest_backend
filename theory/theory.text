@@ -1,0 +1,199 @@
+
+
+Inicio en NestJs
+
+Nest es un framework inspirado en Angular
+
+Sigue la misma logica ( servicios, modulos, decoradores )
+
+Termina creando una aplicacion de Node Js 
+
+Entramos en https://docs.nestjs.com/ y seguimos los pasos para comenzar, instalarlo de forma global con el comando
+
+    npm i -g @nestjs/cli
+
+
+    nest new project-name
+
+
+Nos preguntara que gestor de paquetes preferimos (npm)
+
+Al crear el proyecto veremos que tiene una estructura similar a Angular 
+
+    - src
+        - app.controller.spec.ts
+        - app.controller.ts
+        - app.module.ts 
+        - app.service.ts 
+        - main.ts 
+
+Podemos ver el funcionamiento desde postman.com 
+
+Corremos la app con el siguiente comando 
+
+    npm run start:dev
+
+
+Una vez compilada podemos probarla desde postman con la url 'localhost:3000'
+
+
+
+Si utilizamos MEAN stack utilizaremos MONGO DB
+
+Una forma de utilizarlo es via DOCKER, lo instalamos desde https://www.docker.com/products/docker-desktop/ y tambien necesitaremos MONGO Compass
+
+y lo instalamos desde https://www.mongodb.com/try/download/compass 
+
+
+Una vez tengamos instalado docker revisamos que este corriendo y vamos a https://www.hub.docker.com y buscamos 'mongo' alli buscamos imagenes para utilizar
+
+alli buscamos la que tenga la placa de oficial
+
+
+Mongo compass es un gestor visual para que podamos ver la base de datos y manipularla 
+
+
+
+En nuestro proyecto debemos utilizar 'docker composer', creamos un archivo en la base del proyecto llamado 'docker-compose.yml' (en yml es importante la 
+
+tabulacion)
+
+En el archivo ingresamos:
+
+    *** docker-composer.yml ***
+
+        version: '3'
+        services:
+            db:
+                container_name: mean-db             // El nombre que yo le quiero dar
+                image: mongo:5.0.16                 // La imagen que yo quiero utilizar (en este proyecto utilizamos la buscada en hub.docker.com)
+                volumes:                            // La info que guardara en el local y que no afectara a la de prod 
+                    - ./mongo:/data/db              // Mapeara la carpeta 'mongo' y si no existe la creara
+                ports:                              // Las imagenes se montan en containers(maquina virtual) y nada entra o sale, salvo por los ports
+                    - 27017:27017                   // Es el default, mapea mi puerto '27017' con el puerto '27017' del contenedor
+                restart: always                     // Cada vez que reiniciamos la db o docker desktop levante la db 
+
+
+
+Para levantarlo debemos correr el siguiente comando
+
+    docker compose up -d 
+
+
+El comando 'docker compose' es para ejecutar el archivo docker-compose (lo busca en la carpeta que estamos) 'up' es para que lea y corra las instrucciones
+
+que estoy definiendo en este archivo y el '-d' es para que lo haga 'detached' (pueda cerrar la consola y no se caiga)
+
+Comenzara a descargarse y se levantara una imagen y db en nuestro docker desktop 
+
+Y en la base del proyecto se creara la carpeta 'mongo'
+
+Ingresamos la carpeta de 'mongo' a los archivos del .gitignore 
+
+
+En mongo compass colocamos 'mongodb://localhost:27017' y hacemos click en conectar, de esta forma nos conectamos a la db 
+
+
+En este punto ya tenemos el contenedor con la imagen de nuestra db conectadas a nuestro proyecto nest js 
+
+
+
+Una vez funcionando nuestro backend, no necesitamos el app.controller.ts ni el app.service.ts que vienen por default podemos eliminarlos
+
+Si quisieramos crear un CRUD, nest nos ofrece crearlo de una manera sencilla y rapida, nos ayuda con las validaciones de los tipos de datos, tenemos muchas
+
+funcionalidades ya prearmadas
+
+Todas son clases (como Angular) y tenemos decoradores que nos permiten cambiar las clases a una funcionalidad en particular (modulo, guard, etc)
+
+Nest nos ofrece crear un 'Recurso' (resource) completo con el comando 
+
+    nest g resource name-resource 
+
+    nest g resource auth
+
+Nos ofrece crear Rest API / GraphQL / Microservice / WebSockets
+
+Seleccionamos REST API y nos preguntara si queremos crear todo el 'CRUD', damos yes y se cargara nuestro auth REST API 
+
+En el auth.controller.ts tenemos todos los metodos
+
+
+Para conectar nest con mongo, en 'https://docs.nestjs.com/techniques/mongodb' esta la guia de como conectar a nuestra db 
+
+Utilizamos mongoose, para eso hay que instalarlo con el comando 
+
+    npm i @nestjs/mongoose mongoose 
+
+Mongoose es una herramienta para trabajar con mongo facilmente, no utilizaremos queries, vamos a usar metodos
+
+Una vez instalado vamos a nuestro app.module.ts y lo implementamos
+
+    *** app.module.ts ***
+
+    import { Module } from '@nestjs/common'
+    import { MongooseModule } from '@nestjs/mongoose'
+
+    @Module({
+        imports: [ MongooseModule.forRoot('mongodb://localhost/27017') ]                // Este es nuestro puerto
+    })
+    export class AppModule {}
+
+
+Ahi ya tenemos conectado y corriendo mongoose 
+
+
+Esa ruta a nuestro puerto deberiamos setearla como una variable de entorno
+
+Creamos un archivo .env y lo debemos agregar a .gitignore 
+
+Dentro de '.env' declaramos
+
+    MONGO_URI=mongo://localhost:27017
+
+
+Al no levantar el .env deberiamos crear un .envtemplate
+
+En el README colocamos los pasos 
+
+
+    # Backend en Nest 
+
+    ```
+    docker compose up -d
+
+    ```
+
+    copiar el ``.env.template`` y renombrarlo a ``.env`` 
+
+
+Para agregar las variables de entorno debemos instalar con el comando 
+
+    npm i @nestjs/config
+
+
+Y luego simplemente utilizamos la configuracion en el app.module.ts 
+
+
+    import { Module } from '@nestjs/common'
+    import { ConfigModule } from '@nestjs/config'
+
+    @module({
+        imports: [ ConfigModule.forRoot() ],
+    })
+    export class AppModule {}
+
+
+Una vez tenemos declarado en nuestro app.module.ts esa linea del 'ConfigModule.forRoot()' (declararlo en la parte superior) 
+
+podemos utilzar nuestras variables de entorno 
+
+en los imports de nuestro app.module.ts 
+
+
+  imports: [
+    ConfigModule.forRoot(),
+    MongooseModule.forRoot(process.env.MONGO_URI),
+    
+    AuthModule,
+  ],
