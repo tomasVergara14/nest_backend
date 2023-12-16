@@ -197,3 +197,123 @@ en los imports de nuestro app.module.ts
     
     AuthModule,
   ],
+
+Mongoose va a ir creando queries en mongo compass bajo demanda
+
+
+Una entidad esta relacionado al nombre de una tabla que utilizamos
+
+En nestra variable de entorno podemos nombrar nuestra db 
+
+ex:
+
+    MONGO_URI=mongo://localhost:27017/mean-db
+
+Cuando realizamos cambios en nuestras variables de entorno debemos volver a levantar el proyecto 
+
+
+Mongoose crea bajo demanda 
+
+Tenemos que trabajar la estructura de como vamos a grabar y almacenar nuestra db, esto lo hacemos mediante entidades 'Entitys'
+
+Al crear el proyecto se nos creo una carpeta 'entities', alli creamos el file 
+
+    *** user.entity.ts ***
+
+    export class User {
+
+        email: string;
+
+        name: string;
+
+        password: string;
+
+        isActive: string;
+
+        roles: string;
+    }
+
+Esto debemos grabarlo como un schema para que mongoose lo grabe en nuestra db, para eso utilizamos @Schema
+
+
+    *** user.entity.ts ***
+
+    import { Schema } from '@nestjs/mongoose';          // Lo importamos de mongoose
+
+    @Schema()
+    export class User {
+
+        @Prop({ unique: true, required: true })         // Cada uno de estos datos son properties que podemos darle especificaciones, es unico y requerido
+        email: string;
+
+        @Prop({ required: true })                       // Es obligatorio
+        name: string;
+
+        @Prop({ minlenght: 6, required: true })         // Un minimo de caracteres y requerido
+        password: string;
+
+        @Prop({ default: true })                        // No es obligatoria, si no la paso es true
+        isActive: string;
+
+        @Prop({ type:[ String ], default: [ 'user' ] }) // El typo de dato es string, y el valor por default es 'user;
+        roles: string;
+    }
+
+Por ultimo debemos proporcionar el Schema, que la db reciba el schema para que lo pueda utilizar, para eso exportamos 
+
+
+    *** user.entity.ts ***
+
+    import { Schema } from '@nestjs/mongoose';          // Lo importamos de mongoose
+
+    @Schema()
+    export class User {
+
+        @Prop({ unique: true, required: true })         
+        email: string;
+
+        @Prop({ required: true })                       
+        name: string;
+
+        @Prop({ minlenght: 6, required: true })         
+        password: string;
+
+        @Prop({ default: true })                        
+        isActive: string;
+
+        @Prop({ type:[ String ], default: [ 'user' ] }) 
+        roles: string;
+    }
+
+    export const UserSchema = SchemaFactory.createForClass( User ); // Con esto la exportamos
+    
+
+Luego en nuestro modulo debemos importarla para poder utilizarla 
+
+
+    *** app.module.ts ***
+
+    import { Module } from '@nestjs/common';
+
+    import { MongooseModule } from '@nestjs/mongoose';
+
+    import { AuthService } from './auth.service';
+    import { AuthController } from './auth.controller';
+    import { UserSchema, User } from './entities/user.entity';
+
+    @Module({
+    controllers: [AuthController],
+    providers: [AuthService],
+    imports: [
+        MongooseModule.forFeature([
+            {
+                name: User.name,
+                schema: UserSchema,
+            },
+        ]),
+    ],
+    })
+    
+    export class AuthModule {}
+
+Luego si revisamos en mongoose compass podremos ver nuestra db ya creada con la coleccion de 'users'
