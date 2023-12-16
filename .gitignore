@@ -5,7 +5,7 @@
 mongo/
 .env
 
-theory.text
+theory
 
 # Logs
 logs
