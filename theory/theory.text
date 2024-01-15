@@ -585,3 +585,187 @@ Al crear un usuario deberiamos:
             
         } 
     }
+
+
+
+
+    Encriptar la contraseña
+
+Debemos instalar una libreria externa 
+
+    - npm install bcryptjs
+
+
+Una vez instalado hacemos una importacion de la libreria en nuestro servicio
+
+ex:
+
+    *** auth.service.ts ***
+
+    import * as bcryptjs from 'bcryptjs'; 
+
+
+
+
+Primero debemos obtener la contraseña del usuario para luego encriptarla y al final guardarla en la base de datos 
+
+
+
+
+    *** auth.service.ts ***
+
+
+    @Injectable()
+    export class AuthService {
+
+
+        constructor(
+            @InjectModel(User.name) 
+            private userModel: Model<User>
+        ) {}
+
+        async create( createUserDto: CreateUserDto) {
+    
+            try{
+      
+                const { password, ...userData } = createUserDTO                           // Primero desestructuramos la informacion del usuario y obtenemos las pass
+
+                const newUser = new this.userModel( {                                     // Con la data desestructurada podemos aplicar la libreria en la pass
+                    password: bcryptjs.hashSync( password, 10 ),                          // Utilizamos el metodo hashSync con la pass como parametro y el n de hash 
+                    ...userData
+                } );
+    
+                await newUser.save();                                                     // Aqui ya mandamos el usuario con la info 
+                const { password:_, ...user} = newUser.toJSON();                          // Si quisieramos que no se vea la password desestructuramos y retornamos user
+
+                return { user }
+      
+            } catch (error) {
+                if( error.code === 11000 ) {
+                    throw new BadRequestException(`${createUserDto.email} already exists!`);
+                }
+        
+                throw new InternalServerErrorException('Something terrible happen!!');
+            };
+        }
+    }
+
+
+
+
+
+Para hacer login usualmente tambien se realizan mediante una peticion 'POST'
+
+debemos crear un nuevo metodo en nuestro controller.ts, es una peticion post llamada 'login'
+
+ex:
+
+    *** auth.controller.ts ***
+
+    @Post('/login')
+    login(){
+        return 'login works'
+    }
+
+
+Lo comun es crear los metodos en el servicio y llamarlos en el controller.ts 
+
+En nuestro servicio deberiamos crear un metodo que:
+
+
+    *** auth.service.ts ***
+
+
+    login(){
+
+        // Debe regresar el User ( id, name, email, roles ...)
+        // y el Token ( Json Web Token )
+    }
+
+Deberia crear un DTO para validar que yo reciba la informacion necesaria
+
+
+En las carpetas de DTO creamos uno nuevo llamado login.dto.ts 
+
+
+    *** login.dto.ts ***
+
+    import { IsEmail, MinLength } from 'class-valdiator';
+
+    export class LoginDto {
+
+        @IsEmail()
+        email: string;
+
+        @MinLenght(6)
+        password: string;
+
+    }
+
+
+El DTO lo utilizaremos en nuestro Auth Controller en el metodo como lo hicimos para el create y en nuestro servicio lo utilizamos como parametros
+
+
+En nuestro servicio 
+
+
+    async login( loginDto: LoginDto ){
+
+        const { email, password} = loginDto;
+
+        const user = await this.userModel.findOne({ email });
+        
+        if( !user ){
+            throw new UnauthorizedException('Not valid credential - email');
+        }
+
+        return 'tudo bem';
+    }
+
+
+
+
+    *** auth.controller.ts *** 
+
+
+    @Controller('auth')
+    export class AuthController {
+        constructor(private readonly authService: AuthService) {}
+
+
+        @Post('/login')
+        login(@Body() loginDto: LoginDto ){                             // Usamos el DTO que creamos como validaciones 
+            return this.authService.login(loginDto);                    // Utilizamos el servicio para llamar al metodo 
+        }
+    }
+
+
+ y en nuestro servicio 
+
+
+    *** auth.service.ts *** 
+
+
+
+    async login( loginDto: LoginDto ){
+
+        const { email, password } = loginDto;
+
+        const user = await this.userModel.findOne({email});                     // Aqui guardamos el usuario  
+
+        if( !user ){                                                            // Aqui revisamos mail 
+            throw new UnauthorizedException('Not valid credentials - email');
+        }
+
+        if( !bcryptjs.compareSync( password, user.password ) ){                 // Aca comparamos la pass
+          throw new UnauthorizedException('Not valid credentials - pass');
+        }
+
+
+        const { password:_, ...rest } = user.toJSON();                          // Esto para no almacenar la pass
+
+        return {                                                                // Devolvemos el usuario sin la pass y generamos un Token
+            ...rest,
+            token: 'ABC-123'
+        };
+  }
