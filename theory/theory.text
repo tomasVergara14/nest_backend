@@ -21,13 +21,18 @@ Nos preguntara que gestor de paquetes preferimos (npm)
 Al crear el proyecto veremos que tiene una estructura similar a Angular 
 
     - src
-        - app.controller.spec.ts
-        - app.controller.ts
-        - app.module.ts 
-        - app.service.ts 
-        - main.ts 
+        - app.controller.spec.ts                                            (archivo de pruebas)
+        - app.controller.ts                                                 (es como un componente que va a responder a los comandos get-post-patch-delete)
+        - app.module.ts                             
+        - app.service.ts                                                    (servicio que podemos inyectar en otros controladores)
+        - main.ts                                                           (punto de entrada de la app)
+
+
 
 Podemos ver el funcionamiento desde postman.com 
+
+
+
 
 Corremos la app con el siguiente comando 
 
@@ -47,20 +52,19 @@ y lo instalamos desde https://www.mongodb.com/try/download/compass
 
 Una vez tengamos instalado docker revisamos que este corriendo y vamos a https://www.hub.docker.com y buscamos 'mongo' alli buscamos imagenes para utilizar
 
-alli buscamos la que tenga la placa de oficial
+buscamos la que tenga la placa de oficial
 
 
 Mongo compass es un gestor visual para que podamos ver la base de datos y manipularla 
 
 
-
-En nuestro proyecto debemos utilizar 'docker composer', creamos un archivo en la base del proyecto llamado 'docker-compose.yml' (en yml es importante la 
+En nuestro proyecto debemos utilizar 'docker compose', creamos un archivo en la base del proyecto llamado 'docker-compose.yml' (en yml es importante la 
 
 tabulacion)
 
 En el archivo ingresamos:
 
-    *** docker-composer.yml ***
+    *** docker-compose.yml ***
 
         version: '3'
         services:
@@ -69,7 +73,7 @@ En el archivo ingresamos:
                 image: mongo:5.0.16                 // La imagen que yo quiero utilizar (en este proyecto utilizamos la buscada en hub.docker.com)
                 volumes:                            // La info que guardara en el local y que no afectara a la de prod 
                     - ./mongo:/data/db              // Mapeara la carpeta 'mongo' y si no existe la creara
-                ports:                              // Las imagenes se montan en containers(maquina virtual) y nada entra o sale, salvo por los ports
+                ports:                              // Las imagenes se montan en containers (maquina virtual) y nada entra o sale, salvo por los ports
                     - 27017:27017                   // Es el default, mapea mi puerto '27017' con el puerto '27017' del contenedor
                 restart: always                     // Cada vez que reiniciamos la db o docker desktop levante la db 
 
@@ -80,9 +84,10 @@ Para levantarlo debemos correr el siguiente comando
     docker compose up -d 
 
 
-El comando 'docker compose' es para ejecutar el archivo docker-compose (lo busca en la carpeta que estamos) 'up' es para que lea y corra las instrucciones
-
-que estoy definiendo en este archivo y el '-d' es para que lo haga 'detached' (pueda cerrar la consola y no se caiga)
+El comando:
+    - 'docker compose' es para ejecutar el archivo docker-compose (lo busca en la carpeta que estamos) 
+    - 'up' es para que lea y corra las instrucciones que estoy definiendo en este archivo  
+    - '-d' es para que lo haga 'detached' (pueda cerrar la consola y no se caiga)
 
 Comenzara a descargarse y se levantara una imagen y db en nuestro docker desktop 
 
@@ -100,32 +105,48 @@ En este punto ya tenemos el contenedor con la imagen de nuestra db conectadas a 
 
 Una vez funcionando nuestro backend, no necesitamos el app.controller.ts ni el app.service.ts que vienen por default podemos eliminarlos
 
+
 Si quisieramos crear un CRUD, nest nos ofrece crearlo de una manera sencilla y rapida, nos ayuda con las validaciones de los tipos de datos, tenemos muchas
 
 funcionalidades ya prearmadas
 
+
 Todas son clases (como Angular) y tenemos decoradores que nos permiten cambiar las clases a una funcionalidad en particular (modulo, guard, etc)
 
+
+
 Nest nos ofrece crear un 'Recurso' (resource) completo con el comando 
+
 
     nest g resource name-resource 
 
     nest g resource auth
 
+
 Nos ofrece crear Rest API / GraphQL / Microservice / WebSockets
 
-Seleccionamos REST API y nos preguntara si queremos crear todo el 'CRUD', damos yes y se cargara nuestro auth REST API 
+Seleccionamos REST API y nos preguntara si queremos crear todo el 'CRUD', damos "yes" y se cargara nuestro auth REST API 
+
+Se crean entities, dto, los comandos que podemos ver en el auth controller
 
 En el auth.controller.ts tenemos todos los metodos
 
 
+
+
+
 Para conectar nest con mongo, en 'https://docs.nestjs.com/techniques/mongodb' esta la guia de como conectar a nuestra db 
+
+
 
 Utilizamos mongoose, para eso hay que instalarlo con el comando 
 
+    
     npm i @nestjs/mongoose mongoose 
 
+
 Mongoose es una herramienta para trabajar con mongo facilmente, no utilizaremos queries, vamos a usar metodos
+
 
 Una vez instalado vamos a nuestro app.module.ts y lo implementamos
 
@@ -149,22 +170,22 @@ Creamos un archivo .env y lo debemos agregar a .gitignore
 
 Dentro de '.env' declaramos
 
-    MONGO_URI=mongo://localhost:27017
+    MONGO_URI=mongodb://localhost:27017
 
 
-Al no levantar el .env deberiamos crear un .envtemplate
+Al no levantar el .env deberiamos crear un .env.template
 
 En el README colocamos los pasos 
 
 
     # Backend en Nest 
 
-    ```
-    docker compose up -d
+        ```
+        docker compose up -d
 
-    ```
+        ```
 
-    copiar el ``.env.template`` y renombrarlo a ``.env`` 
+        copiar el ``.env.template`` y renombrarlo a ``.env`` 
 
 
 Para agregar las variables de entorno debemos instalar con el comando 
@@ -198,16 +219,18 @@ en los imports de nuestro app.module.ts
     AuthModule,
   ],
 
+
+
 Mongoose va a ir creando queries en mongo compass bajo demanda
 
 
 Una entidad esta relacionado al nombre de una tabla que utilizamos
 
-En nestra variable de entorno podemos nombrar nuestra db 
+En nuestra variable de entorno podemos nombrar nuestra db 
 
 ex:
 
-    MONGO_URI=mongo://localhost:27017/mean-db
+    MONGO_URI=mongodb://localhost:27017/mean-db
 
 Cuando realizamos cambios en nuestras variables de entorno debemos volver a levantar el proyecto 
 
@@ -232,6 +255,10 @@ Al crear el proyecto se nos creo una carpeta 'entities', alli creamos el file
 
         roles: string;
     }
+
+
+El '_id' se crea automaticamente
+
 
 Esto debemos grabarlo como un schema para que mongoose lo grabe en nuestra db, para eso utilizamos @Schema
 
@@ -317,3 +344,244 @@ Luego en nuestro modulo debemos importarla para poder utilizarla
     export class AuthModule {}
 
 Luego si revisamos en mongoose compass podremos ver nuestra db ya creada con la coleccion de 'users'
+
+
+
+    Data transfer object (DTO)
+
+
+Los DTO sirven para saber que data esperar
+
+
+  @Post()
+  create(@Body() createAuthDto: CreateAuthDto) { 
+    return this.authService.create(createAuthDto);
+  }
+
+  Lo que vemos en el body se encarga de transformarlo para que luzca como el createAuthDTO
+
+
+Los DTO nos permiten realizar validaciones de forma sencilla, por ejemplo, creamos uno para crear usuarios:
+
+ex: createUserDTO
+
+    *** create-user-dto.ts ***
+
+        import { MinLength, IsEmail, IsString } from "class-validator";
+
+
+        export class CreateUserDto {
+
+            email: string;
+
+            name: string;
+
+            password: string;
+
+        }
+
+En este archivo declaramos que data debe recibir, esto luego lo utilizaremos en los metodos en el controller.ts 
+
+
+ex:
+
+    *** auth.controller.ts ***
+
+
+    import { CreateUserDto } from './dto/create-user.dto';
+
+
+    @Controller('auth')
+    export class AuthController {
+
+    constructor(private readonly authService: AuthService) {}
+
+        @Post()
+            create(@Body() createAuthDto: CreateAuthDto) { 
+            return this.authService.create(createAuthDto);
+        }
+
+    }
+
+Si quisiera hacer validaciones en nuestros DTO podemos utilizar unas librerias externas super utiles "class-validator" "class-transformer"
+
+
+Las instalamos con 
+
+    - npm install class-validator class-transformer 
+
+
+Una vez instaladas, debemos configurar nuestro main para que realice estas validaciones a nivel global en la app 
+
+
+
+    *** main.ts ***
+
+    import { NestFactory } from '@nestjs/core';
+    import { AppModule } from './app.module';
+    import { ValidationPipe } from '@nestjs/common';
+
+    async function bootstrap() {
+        const app = await NestFactory.create(AppModule);
+
+        app.useGlobalPipes(
+            new ValidationPipe({
+                hitelist: true,
+                forbidNonWhitelisted: true,
+            })
+        );
+
+        await app.listen(3000);
+    }
+    bootstrap();
+
+
+Esto iundica de que si no viene como indicamos nuestra request sera rechazada y aclarara el error - 400 bad request 
+
+
+En nuestro DTO podemos utilizar algunos decoradores para realizar esta validaciones
+
+    
+    
+    *** create-user-dto.ts ***
+
+    import { MinLength, IsEmail, IsString } from "class-validator";
+
+
+    export class CreateUserDto {
+
+        @IsEmail()                              // decorador de que debe ser email 
+        email: string;
+
+        @IsString()                             // decorador de que debe ser string 
+        name: string;
+
+        @MinLength(6)                           // decorador de que como minimo debe tener 6 caracteres
+        password: string;
+
+    }
+
+
+
+Luego utilizamos este DTO para indicar que data debe llegar y realizar las validaciones que le aclaramos
+
+ex:
+
+
+    *** auth.controller.ts ***
+
+    import {
+        Controller,
+        Get,
+        Post,
+        Body,
+        Patch,
+        Param,
+        Delete,
+    } from '@nestjs/common';
+    import { CreateUserDto } from './dto/create-user.dto';
+
+
+    @Controller('auth')
+    export class AuthController {
+        constructor(private readonly authService: AuthService) {}
+
+        @Post()
+        create(@Body() createAuthDto: CreateUserDto) {
+            return this.authService.create(createAuthDto);
+        }
+    }
+
+
+
+Para crear un registro de bases de datos, debemos inyectar nuestro modelo
+
+
+En nuestro auth.service en el constructor inyectamos el modelo 
+
+
+ex: 
+
+    *** auth.service.ts ***
+
+
+    import { Injectable } from '@nestjs/common';
+    import { InjectModel } from '@nestjs/mongoose';                     // Importamos el decorador para inyectar nuestro modelo
+    import { Model } from 'mongoose';                                   // Importamos el modelo que utilizara de mongoose
+
+    import { CreateUserDto } from './dto/create-user.dto';              // Nuestro DTO para las validaciones y trasnformar la data 
+    import { UpdateAuthDto } from './dto/update-auth.dto';
+    import { User } from './entities/user.entity';                      // Nuestra entity para saber que info pasamos
+
+    @Injectable()
+    export class AuthService {
+
+
+        constructor(
+            @InjectModel(User.name)                                     // Inyectamos el modelo que creamos 
+            private userModel: Model<User>
+        ) {}
+
+        create( createUserDto: CreateUserDto) {
+    
+            const newUser = new this.userModel( createUserDto );        // creamos una nueva instancia usando el DTO
+
+            return newUser.save();                                      // es lo necesario para guardarlo en la db
+        } 
+    }
+
+
+Con este modelo ya podemos hacer todas las interacciones con la data base relacionada
+
+
+Con este metodo ya se crea nuestra data en la base de datos y les crea un "_id" y "version" automaticamente
+
+
+Si ya ingresamos datos e intentamos volver a guardarlos, nos devolvera un error "duplicate key" y en postman veremos un statusCode = 500
+
+
+Al crear un usuario deberiamos:
+
+    1- Encriptar la contraseña
+    2- Guardar el usuario
+    3- Generar el JWT (Json web token)
+    4- Manejar errores y excepciones
+
+
+
+    *** auth.service.ts ***
+
+
+    import { Injectable } from '@nestjs/common';
+    import { InjectModel } from '@nestjs/mongoose';                     // Importamos el decorador para inyectar nuestro modelo
+    import { Model } from 'mongoose';                                   // Importamos el modelo que utilizara de mongoose
+
+    import { CreateUserDto } from './dto/create-user.dto';              // Nuestro DTO para las validaciones y trasnformar la data 
+    import { UpdateAuthDto } from './dto/update-auth.dto';
+    import { User } from './entities/user.entity';                      // Nuestra entity para saber que info pasamos
+
+    @Injectable()
+    export class AuthService {
+
+
+        constructor(
+            @InjectModel(User.name)                                     // Inyectamos el modelo que creamos 
+            private userModel: Model<User>
+        ) {}
+
+        create( createUserDto: CreateUserDto) {
+
+            try{
+
+            } catch (error) {
+                if( error.code === 11000 ) {                            // Este error corresponde a keys duplicadas
+
+                    throw new BadRequestException(`${createUserDto.email} already exists!`)
+
+                }
+
+                throw new InternalServerErrorExcepction('Something terrible happen!!')
+            }
+            
+        } 
+    }
