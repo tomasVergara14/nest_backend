@@ -134,6 +134,8 @@ En el auth.controller.ts tenemos todos los metodos
 
 
 
+El auth.service deberia manejar las acciones de nuestro usuario (login, etc) primero debemos conectar a mongo 
+
 
 Para conectar nest con mongo, en 'https://docs.nestjs.com/techniques/mongodb' esta la guia de como conectar a nuestra db 
 
@@ -426,7 +428,7 @@ Una vez instaladas, debemos configurar nuestro main para que realice estas valid
 
         app.useGlobalPipes(
             new ValidationPipe({
-                hitelist: true,
+                whitelist: true,
                 forbidNonWhitelisted: true,
             })
         );
@@ -436,7 +438,7 @@ Una vez instaladas, debemos configurar nuestro main para que realice estas valid
     bootstrap();
 
 
-Esto iundica de que si no viene como indicamos nuestra request sera rechazada y aclarara el error - 400 bad request 
+Esto indica de que si no viene como indicamos nuestra request sera rechazada y aclarara el error - 400 bad request 
 
 
 En nuestro DTO podemos utilizar algunos decoradores para realizar esta validaciones
@@ -522,7 +524,7 @@ ex:
             private userModel: Model<User>
         ) {}
 
-        create( createUserDto: CreateUserDto) {
+        create( createUserDto: CreateUserDto): Promise<User> {          // Devuelve una promesa que es un usuario
     
             const newUser = new this.userModel( createUserDto );        // creamos una nueva instancia usando el DTO
 
