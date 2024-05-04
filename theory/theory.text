@@ -459,7 +459,7 @@ En nuestro DTO podemos utilizar algunos decoradores para realizar esta validacio
         name: string;
 
         @MinLength(6)                           // decorador de que como minimo debe tener 6 caracteres
-        password: string;
+        password?: string;                      // El ? despues lo explicamos
 
     }
 
@@ -640,7 +640,7 @@ Primero debemos obtener la contraseña del usuario para luego encriptarla y al f
                 await newUser.save();                                                     // Aqui ya mandamos el usuario con la info 
                 const { password:_, ...user} = newUser.toJSON();                          // Si quisieramos que no se vea la password desestructuramos y retornamos user
 
-                return { user }
+                return { user }                                                           // Para que esto funque, en el service debemos poner opcional el pass con ?
       
             } catch (error) {
                 if( error.code === 11000 ) {
@@ -659,6 +659,8 @@ Primero debemos obtener la contraseña del usuario para luego encriptarla y al f
 Para hacer login usualmente tambien se realizan mediante una peticion 'POST'
 
 debemos crear un nuevo metodo en nuestro controller.ts, es una peticion post llamada 'login'
+
+para que funcione vamos a necesitar en el body del enpoint info del usuario (email y pass que el creo, no la hasheada)
 
 ex:
 
@@ -692,9 +694,9 @@ En las carpetas de DTO creamos uno nuevo llamado login.dto.ts
 
     *** login.dto.ts ***
 
-    import { IsEmail, MinLength } from 'class-valdiator';
+    import { IsEmail, MinLength } from 'class-validator';
 
-    export class LoginDto {
+    export class LoginDto {                                                     // Deberian ser la misma data que envia el usuario, por lo que tienen las mismas valid
 
         @IsEmail()
         email: string;
@@ -771,3 +773,130 @@ En nuestro servicio
             token: 'ABC-123'
         };
   }
+
+
+    JWT
+
+json web tokens 
+
+Antes de generar el JWT, entendamos que es, es un standar para mantener autenticados a nuestros users de forma pasiva. Cada vez que pasen por el login nosotros 
+
+devolvemos un JWT, ese JWT es el que me van a proporcionar cuando quieran llegar a un endpoint el cual pide autenticacion, mi backend va a recibir el token y verificar
+
+si fue firmado por el mismo backend, si es valido y todo pasa entonces confiamos en quien dice ser 
+
+El jwt consta de 3 partes: 
+    - header: como fue constyruido y tipo de token 
+    - payload: la info que deseamos, pero es info sensible no mandar datos de pass ni de tarjetas, porque se puede desencriptar
+    - signature: consta del header encriptado, el payload encriptado y una llave
+
+Si alguien modifica el payload no va a coincidir con la firma por lo que no podra acceder
+
+Para crear uno utilizamos https://docs.nestjs.com/security/authentication#jwt-token para realizar las instalaciones
+
+    - npm install --save @nestjs/jwt
+
+Una vez instalado en el auth.service instalamos import { JwtService } from '@nestjs/jwt';
+
+    *** auth.service.ts ***
+
+
+    import { JwtService } from '@nestjs/jwt';
+
+
+    @Injectable()
+    export class AuthService {
+
+
+        constructor(
+            @InjectModel(User.name) 
+            private userModel: Model<User>,
+            private jwtService: JwtService
+        ) {}
+    }
+
+
+Primero creamos una interfaz nueva indicando como va a ser nuestro JwPayload
+
+    export interface JwPayload {
+        id: string;                         
+        iat?: number;                       // fecha de creacion opcional   
+        exp?: number;                       // fecha expiracion opcional
+    }
+
+Creamos un nuevo metodo en el auth 
+
+  
+  getJwToken( payload: JwtPayload ){
+    const token = this.jwtService.sign( payload )
+    return token;
+  }
+
+para asi luego llamarlo en el metodo login 
+
+
+  async login( loginDto: LoginDto ){
+
+    const { email, password } = loginDto;
+
+    const user = await this.userModel.findOne({email});
+
+    if( !user ){
+      throw new UnauthorizedException('Not valid credentials - email');
+    }
+    
+    if( !bcryptjs.compareSync( password, user.password ) ){
+      throw new UnauthorizedException('Not valid credentials - pass');
+    }
+
+    const { password:_, ...rest } = user.toJSON();
+
+    return { 
+      ...rest,
+      token: this.getJwToken({ id: user.id}),                           // aqui devolvemos el token
+    };
+  }
+
+Necesitamos proveer todo el modulo de Jwt, la forma mas segura es crear una variable de entorno
+
+
+    JWT_SEED=Esta_es_la_key
+
+Esta es la que permitira que se firme en nuestro nombre, no se sube a ningun lado y solo deberia saberla el que maneja los servidores
+
+
+El auth.module.ts quedaria algo asi como 
+
+
+    import { JwtModule } from '@nestjs/jwt';
+    import { ConfigModule } from '@nestjs/config';
+
+    @Module({
+        controllers: [AuthController],
+        providers: [AuthService],
+        imports: [
+            ConfigModule.forRoot(),
+            MongooseModule.forFeature([
+                {
+                    name: User.name,
+                    schema: UserSchema,
+                },
+            ]),
+            JwtModule.register({
+                global: true,
+                secret: process.env.JWT_SEED,
+                signOptions: { expiresIn: '60s' },
+            }),
+        ],
+    })
+
+Luego de unos cambios en las variables de entorno debemos bajar la app y volver a levantarla
+
+
+Luego con postman podemos chequear pegandole al endpoint 'auth/login' nos devuelve el token 
+
+Una vez obtenemos el token podemos compararlo en la web jwt.io pasandole el token y nos devuelve 
+
+    - header
+    - payload                   // el id del usuario de nuestra db 
+    - verify signature
