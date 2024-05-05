@@ -900,3 +900,360 @@ Una vez obtenemos el token podemos compararlo en la web jwt.io pasandole el toke
     - header
     - payload                   // el id del usuario de nuestra db 
     - verify signature
+
+
+Cuando creamos un usuario queremos que inicie sesion
+
+
+Creamos una interfaz de login-response.ts
+
+    import { User } from "../entities/user.entity";
+
+    export interface loginResponse{
+        user: User;
+        token: string;
+    }
+
+
+en nuestro auth.service.ts modificamos para que nuestro login devuelva el tipo de Promise 
+
+
+  async login( loginDto: LoginDto ): Promise<loginResponse> {
+
+    const { email, password } = loginDto;
+
+    const user = await this.userModel.findOne({email});
+
+    if( !user ){
+      throw new UnauthorizedException('Not valid credentials - email');
+    }
+    
+    if( !bcryptjs.compareSync( password, user.password ) ){
+      throw new UnauthorizedException('Not valid credentials - pass');
+    }
+
+    const { password:_, ...rest } = user.toJSON();
+
+    return { 
+      user: rest,
+      token: this.getJwToken({ id: user.id}),
+    };
+  }
+
+
+Una vez creado el login y llamadao desde nuestro controller.ts con el metodo 
+
+
+  @Post('/login')
+  login(@Body() loginDto: LoginDto ){
+    return this.authService.login(loginDto);
+  }
+
+Crearemos un metodo de registro, por lo general cuando se crea un usuario nuevo se inicia sesion por lo que podriamos crear un metodo que llame a create y login 
+
+
+    *** auth.service.ts ***
+
+
+    async register( registerDto: RegisterUserDto ){
+
+        const user = await this.create( registerDto )
+
+        return {
+            user: user,
+            token: this.getJwToken({ id: user._id}),
+        }
+    }
+
+Creamos un dto nuevo para que funcione que es muy similar al createUserDTO
+
+luego desde el controlador lo mandamos a llamar 
+
+  @Post('register')
+  register(@Body() registerDto: RegisterUserDto){
+    return this.authService.register(registerDto)
+  }
+
+
+Por lo que nuestro controlador quedaria:
+
+
+    *** auth.controller.ts ***
+
+    /* eslint-disable prettier/prettier */
+    import {
+        Controller,
+        Get,
+        Post,
+        Body,
+        Patch,
+        Param,
+        Delete,
+    } from '@nestjs/common';
+
+    import { AuthService } from './auth.service';
+    import { LoginDto, UpdateAuthDto, CreateUserDto, RegisterUserDto } from './dto/index';
+
+    @Controller('auth')
+    export class AuthController {
+        constructor(private readonly authService: AuthService) {}
+
+        @Post()
+        create(@Body() createAuthDto: CreateUserDto) {
+            return this.authService.create(createAuthDto);
+        }
+
+        @Post('/login')
+        login(@Body() loginDto: LoginDto ){
+            return this.authService.login(loginDto);
+        }
+
+        @Post('register')
+        register(@Body() registerDto: RegisterUserDto){
+            return this.authService.register(registerDto)
+        }
+
+        @Get()
+        findAll() {
+            return this.authService.findAll();
+        }
+
+        @Get(':id')
+        findOne(@Param('id') id: string) {
+            return this.authService.findOne(+id);
+        }
+
+        @Patch(':id')
+        update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
+            return this.authService.update(+id, updateAuthDto);
+        }
+
+        @Delete(':id')
+        remove(@Param('id') id: string) {
+            return this.authService.remove(+id);
+        }
+    }
+
+
+nuestro auth.service
+
+
+    *** auth.service.ts ***
+
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    /* eslint-disable prettier/prettier */
+    import { BadRequestException, Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+    import { InjectModel } from '@nestjs/mongoose';
+    import { Model } from 'mongoose';
+    import * as bcryptjs from 'bcryptjs'
+    import { JwtService } from '@nestjs/jwt';
+
+    import { User } from './entities/user.entity';
+    import { JwtPayload } from './interfaces/jwt-payload';
+    import { loginResponse } from './interfaces/login-response';
+    import { RegisterUserDto, CreateUserDto, UpdateAuthDto, LoginDto } from './dto/index';
+
+    @Injectable()
+    export class AuthService {
+
+
+        constructor(
+            @InjectModel(User.name) 
+            private userModel: Model<User>,
+            private jwtService: JwtService
+        ) {}
+
+        async create( createUserDto: CreateUserDto) {
+    
+            try{
+      
+                const { password, ...userData } = createUserDto;
+
+                const newUser = new this.userModel({
+                    password: bcryptjs.hashSync(password,10),
+                    ...userData
+                });
+
+                await newUser.save();
+  
+                const { password:_, ...user } = newUser.toJSON();
+
+                return  user; 
+      
+            } catch (error) {
+                if( error.code === 11000 ) {
+                throw new BadRequestException(`${createUserDto.email} already exists!`);
+            }
+            throw new InternalServerErrorException('Something terrible happen!!');
+            };
+        }
+
+        async register( registerDto: RegisterUserDto ){
+
+            const user = await this.create( registerDto )
+
+            return {
+                user: user,
+                token: this.getJwToken({ id: user._id}),
+            }
+        }
+
+        async login( loginDto: LoginDto ): Promise<loginResponse> {
+
+            const { email, password } = loginDto;
+
+            const user = await this.userModel.findOne({email});
+
+            if( !user ){
+                throw new UnauthorizedException('Not valid credentials - email');
+            }
+    
+            if( !bcryptjs.compareSync( password, user.password ) ){
+                throw new UnauthorizedException('Not valid credentials - pass');
+            }
+
+            const { password:_, ...rest } = user.toJSON();
+
+            return { 
+                user: rest,
+                token: this.getJwToken({ id: user.id}),
+            };
+        }
+
+        findAll() {
+            return `This action returns all auth`;
+        }
+
+        findOne(id: number) {
+            return `This action returns a #${id} auth`;
+        }
+
+  
+        update(id: number, _updateAuthDto: UpdateAuthDto) {
+            return `This action updates a #${id} auth`;
+        }
+
+        remove(id: number) {
+            return `This action removes a #${id} auth`;
+        }
+
+        getJwToken( payload: JwtPayload ){
+            const token = this.jwtService.sign( payload )
+            return token;
+        }
+    }
+
+
+Ahora nos falta proteger rutas con autenticacion 
+
+Desde el controlador tenemos el findAll que nos trae todo el usuario si utilizamos el metodo 
+
+
+  @Get()
+  findAll() {
+    return this.authService.findAll();
+  }
+
+Pero nosotros solo queremos mostrar la info si es un usuario autenticado y que se le permita, para esto utilizamos los guards 
+
+En nest en https://docs.nestjs.com/security/authentication#implementing-the-authentication-guard tenemos la parte que deseamos implementar 
+
+Es similar al ejemplo pero no identica 
+
+Con el comando 
+
+    - nest g gu auth/guards/auth 
+
+Le indicamos que genere un guard en la carpeta guard dentro de la carpeta auth 
+
+se crea :
+
+    import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+    import { Observable } from 'rxjs';
+
+    @Injectable()
+    export class AuthGuard implements CanActivate {
+        canActivate(
+            context: ExecutionContext,
+        ): boolean | Promise<boolean> | Observable<boolean> {
+            return true;
+        }
+    }
+
+
+Lo modificamos para que siempre pase por el momento:
+
+    import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+    import { JwtService } from '@nestjs/jwt';
+    import { Observable } from 'rxjs';
+
+    @Injectable()
+    export class AuthGuard implements CanActivate {
+  
+        constructor(
+            private jwtService: JwtService,
+        ){}
+
+        canActivate( context: ExecutionContext ): Promise<boolean> {
+
+            const request = context.switchToHttp().getRequest();
+    
+            return Promise.resolve(true);  
+        }
+    }
+
+
+y para utilizarlo en nuestro controlador 
+
+
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+
+import { AuthGuard } from './guards/auth/auth.guard';
+
+  @UseGuards( AuthGuard )
+  @Get()
+  findAll() {
+    return this.authService.findAll();
+  }
+
+
+El siguiente paso es extraer el token 
+
+
+    import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+    import { JwtService } from '@nestjs/jwt';
+    import { Observable } from 'rxjs';
+
+    @Injectable()
+    export class AuthGuard implements CanActivate {
+  
+        constructor(
+            private jwtService: JwtService,
+        ){}
+
+        canActivate( context: ExecutionContext ): Promise<boolean> {
+
+            const request = context.switchToHttp().getRequest();
+
+            const token = this.extractTokenFromHeader(request);
+
+            return Promise.resolve(true);  
+        }
+
+        private extractTokenFromHeader(request: Request): string | undefined {
+            const [type, token] = request.headers['authorization']?.split(' ') ?? [];
+            return type === 'Bearer' ? token : undefined;
+        }
+    }
+
+
+Aca el token llega como undefined todavia, una practica normal es mandar el token en el header / authorization del pedido
