@@ -14,6 +14,7 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto, UpdateAuthDto, CreateUserDto, RegisterUserDto } from './dto/index';
 import { AuthGuard } from './guards/auth/auth.guard';
+import { User } from './entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +33,17 @@ export class AuthController {
   @Post('register')
   register(@Body() registerDto: RegisterUserDto){
     return this.authService.register(registerDto)
+  }
+
+  @UseGuards( AuthGuard )
+  @Get('/check-token')
+  checkToken(@Request() req: Request){
+    const user = req['user'] as User;
+
+    return {
+      user,
+      token: this.authService.getJwToken({id: user._id})
+    }
   }
 
   @UseGuards( AuthGuard )

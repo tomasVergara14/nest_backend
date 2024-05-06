@@ -78,6 +78,21 @@ export class AuthService {
     };
   }
 
+  async checkToken(loginDto: LoginDto ): Promise<loginResponse>{
+    const { user, token } = await this.login(loginDto)
+
+    if( !token ) throw new UnauthorizedException('there is no bearer token');
+
+    try{
+      return{
+        user: user,
+        token: token
+      }
+    }catch( error ){
+      throw new InternalServerErrorException('Something terrible happen!!');
+    }
+  }
+
   findAll() {
     return this.userModel.find();
   }
