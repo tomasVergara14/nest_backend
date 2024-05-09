@@ -39,18 +39,17 @@ export class AuthController {
   @Get('/check-token')
   checkToken(@Request() req: Request){
     const user = req['user'] as User;
+    console.log(user)
 
     return {
-      user,
+      user: user,
       token: this.authService.getJwToken({id: user._id})
     }
   }
 
   @UseGuards( AuthGuard )
   @Get()
-  findAll( @Request() req: Request) {
-    console.log(req)
-    
+  findAll() {
     // const user = req['user']
 
     // return user;

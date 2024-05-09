@@ -74,13 +74,14 @@ export class AuthService {
 
     return { 
       user: rest,
-      token: this.getJwToken({ id: user.id}),
+      token: this.getJwToken({ id: user._id}),
     };
   }
 
   async checkToken(loginDto: LoginDto ): Promise<loginResponse>{
     const { user, token } = await this.login(loginDto)
 
+    console.log(user)
     if( !token ) throw new UnauthorizedException('there is no bearer token');
 
     try{

@@ -35,10 +35,12 @@ export class AuthGuard implements CanActivate {
       if( !user ) throw new UnauthorizedException('User does not exist')
       if( !user.isActive ) throw new UnauthorizedException('User is not active')
 
-      request['user'] = payload.id;
+      
+      request['user'] = payload;
+      console.log(request)
 
     } catch(error){
-
+      throw new UnauthorizedException()
     }
 
 
